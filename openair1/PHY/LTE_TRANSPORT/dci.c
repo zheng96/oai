@@ -1723,6 +1723,7 @@ int32_t rx_pdcch(PHY_VARS_UE *ue,
                                frame_parms);
 #endif //MU_RECEIVER
     } else if (frame_parms->nb_antenna_ports_eNB>1) {
+      
       pdcch_extract_rbs_dual(common_vars->common_vars_rx_data_per_thread[ue->current_thread_id[subframe]].rxdataF,
                              common_vars->common_vars_rx_data_per_thread[ue->current_thread_id[subframe]].dl_ch_estimates[eNB_id],
                              pdcch_vars[eNB_id]->rxdataF_ext,
@@ -1751,7 +1752,7 @@ int32_t rx_pdcch(PHY_VARS_UE *ue,
 
   for (aatx=0; aatx<frame_parms->nb_antenna_ports_eNB; aatx++)
     for (aarx=0; aarx<frame_parms->nb_antennas_rx; aarx++)
-      avgs = cmax(avgs,avgP[(aarx<<1)+aatx]);
+      avgs = cmax(avgs,avgP[(aarx<<1)+aatx]);                    //avgs is max{reveive power}
 
   log2_maxh = (log2_approx(avgs)/2) + 5;  //+frame_parms->nb_antennas_rx;
 #ifdef UE_DEBUG_TRACE

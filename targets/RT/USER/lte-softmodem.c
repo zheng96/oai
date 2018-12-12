@@ -79,6 +79,8 @@ unsigned short config_frames[4] = {2,9,11,13};
 #ifdef XFORMS
 #include "PHY/TOOLS/lte_phy_scope.h"
 #include "stats.h"
+#include <sys/stat.h>
+
 // current status is that every UE has a DL scope for a SINGLE eNB (eNB_id=0)
 // at eNB 0, an UL scope for every UE
 FD_lte_phy_scope_ue  *form_ue[NUMBER_OF_UE_MAX];
@@ -120,6 +122,16 @@ static char                    *conf_config_file_name = NULL;
 static char                    *itti_dump_file = NULL;
 #endif
 
+//***************************************************
+//this is for global varible added by zhangheng
+#define count_estimation_f_GLOBAL
+uint16_t count_estimation_f = 0;
+#define path_of_output_GLOBAL
+char path_of_output[128]={0};
+uint16_t NUMBER_OF_ESTIMATION_F = 0; 
+uint8_t csi_collect_flag = 0;
+
+//***************************************************
 int UE_scan = 1;
 int UE_scan_carrier = 0;
 runmode_t mode = normal_txrx;
@@ -459,6 +471,14 @@ static void *scope_thread(void *arg) {
                          PHY_vars_UE_g[0][0],
                          0,
                          0,7);
+			if(count_estimation_f>=(NUMBER_OF_ESTIMATION_F+NUMBER_OF_ESTIMATION_F/10)){
+				UE_id = 0;
+				fl_set_button(form_ue[UE_id]->button_1,0);
+				fl_set_object_label(form_ue[UE_id]->button_1, "CSI Collecting OFF");
+               //    PHY_vars_UE_g[0][0]->use_ia_receiver = 0;
+                fl_set_object_color(form_ue[UE_id]->button_1, FL_RED, FL_RED);
+	            //csi_collect_flag = 0;
+				}
 
         } else {
             if (PHY_vars_eNB_g[0][0]->mac_enabled==1) {
@@ -700,7 +720,7 @@ static void get_options (int argc, char **argv) {
     {NULL, 0, NULL, 0}
   };
 
-  while ((c = getopt_long (argc, argv, "A:a:C:dEK:g:F:G:hqO:m:SUVRM:r:P:Ws:t:Tx:",long_options,NULL)) != -1) {
+  while ((c = getopt_long (argc, argv, "A:a:C:dEK:g:F:G:hqO:m:SUVRM:r:P:Ws:t:Tx:s:",long_options,NULL)) != -1) {
     switch (c) {
     case LONG_OPTION_RF_CONFIG_FILE:
       if ((strcmp("null", optarg) == 0) || (strcmp("NULL", optarg) == 0)) {
@@ -925,6 +945,8 @@ static void get_options (int argc, char **argv) {
         case 't':
             target_ul_mcs = atoi (optarg);
             break;
+		case 's':
+			NUMBER_OF_ESTIMATION_F = atoi(optarg);
 
         case 'W':
             opt_enabled=1;
@@ -1015,6 +1037,10 @@ static void get_options (int argc, char **argv) {
             break;
 
         case 'F':
+			strcpy(path_of_output,optarg);
+			/*if(access(path_of_output,0)!=0)
+  	           if(mkdir(path_of_output,0777)!=0)
+		         printf("dictory fail to build\n");*/
             break;
 
         case 'G':
@@ -1848,6 +1874,7 @@ int main( int argc, char **argv ) {
             }*/
             fl_set_button(form_ue[UE_id]->button_0,0);
             fl_set_object_label(form_ue[UE_id]->button_0, "IA Receiver OFF");
+			
         }
 
         ret = pthread_create(&forms_thread, NULL, scope_thread, NULL);

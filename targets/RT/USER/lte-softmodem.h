@@ -39,7 +39,32 @@
 #endif
 #endif
 #endif
+//************************************************
+//this is modified by zhangehng
+#ifdef count_estimation_f_GLOBAL
+#define count_estimation_f_EXT
+#else
+#define count_estimation_f_EXT extern
+#endif
+count_estimation_f_EXT uint16_t count_estimation_f;
 
+#ifdef count_estimation_f_GLOBAL
+#define count_estimation_f_EXT
+#else
+#define count_estimation_f_EXT extern
+#endif
+count_estimation_f_EXT uint16_t NUMBER_OF_ESTIMATION_F;
+
+
+
+#ifdef path_of_output_GLOBAL
+#define path_of_output_EXT
+#else
+#define path_of_output_EXT extern
+#endif
+path_of_output_EXT char path_of_output[128];
+
+//////////////////////////////////////////////
 extern pthread_cond_t sync_cond;
 extern pthread_mutex_t sync_mutex;
 extern int sync_var;

@@ -27,7 +27,9 @@
 #include "PHY/defs.h"
 #include "filt96_32.h"
 #include "T.h"
-//#define DEBUG_CH
+#include "sys/time.h"
+#include "PHY/impl_defs_top.h"
+extern uint16_t NUMBER_OF_ESTIMATION_F;
 
 int lte_dl_channel_estimation(PHY_VARS_UE *ue,
                               uint8_t eNB_id,
@@ -37,6 +39,10 @@ int lte_dl_channel_estimation(PHY_VARS_UE *ue,
                               unsigned char l,
                               unsigned char symbol)
 {
+  //unsigned char he=0;
+  int16_t *rs_estimate = (int16_t *)malloc(ue->frame_parms.N_RB_DL*4*2*sizeof(int16_t));
+  int16_t *rs_estimate1 = rs_estimate;
+  int16_t *dl_ch1;
   int pilot[2][200] __attribute__((aligned(16)));
   unsigned char nu,aarx;
   unsigned short k;
@@ -54,8 +60,6 @@ int lte_dl_channel_estimation(PHY_VARS_UE *ue,
   int **dl_ch_estimates         =ue->common_vars.common_vars_rx_data_per_thread[ue->current_thread_id[Ns>>1]].dl_ch_estimates[eNB_offset];
   int **dl_ch_estimates_previous=ue->common_vars.common_vars_rx_data_per_thread[previous_thread_id].dl_ch_estimates[eNB_offset];
   int **rxdataF=ue->common_vars.common_vars_rx_data_per_thread[ue->current_thread_id[Ns>>1]].rxdataF;
-
-  pilot0 = 0;
   if (ue->frame_parms.Ncp == 0) {  // normal prefix
     pilot1 = 4;
     pilot2 = 7;
@@ -82,7 +86,8 @@ int lte_dl_channel_estimation(PHY_VARS_UE *ue,
     return(-1);
   }
 
-
+// printf("ue->high_speed_flag = %d \n",ue->high_speed_flag); = 1 when tele 
+  pilot0 = 0;
   //ch_offset     = (l*(ue->frame_parms.ofdm_symbol_size));
   if (ue->high_speed_flag == 0) // use second channel estimate position for temporary storage
     ch_offset     = ue->frame_parms.ofdm_symbol_size ;
@@ -176,7 +181,6 @@ int lte_dl_channel_estimation(PHY_VARS_UE *ue,
   }
 
 
-
   // generate pilot
   lte_dl_cell_spec_rx(ue,
                       eNB_offset,
@@ -188,9 +192,10 @@ int lte_dl_channel_estimation(PHY_VARS_UE *ue,
 
   for (aarx=0; aarx<ue->frame_parms.nb_antennas_rx; aarx++) {
 
-    pil   = (int16_t *)&pilot[p][0];
-    rxF   = (int16_t *)&rxdataF[aarx][((symbol_offset+k+ue->frame_parms.first_carrier_offset))];
-    dl_ch = (int16_t *)&dl_ch_estimates[(p<<1)+aarx][ch_offset];
+    pil    = (int16_t *)&pilot[p][0];
+    rxF    = (int16_t *)&rxdataF[aarx][((symbol_offset+k+ue->frame_parms.first_carrier_offset))];
+    dl_ch  = (int16_t *)&dl_ch_estimates[(p<<1)+aarx][ch_offset];
+	dl_ch1 = (int16_t *)&dl_ch_estimates[(p<<1)+aarx][ch_offset];
 
 
     //    if (eNb_id==0)
@@ -210,6 +215,8 @@ int lte_dl_channel_estimation(PHY_VARS_UE *ue,
       // Treat first 2 pilots specially (left edge)
       ch[0] = (int16_t)(((int32_t)pil[0]*rxF[0] - (int32_t)pil[1]*rxF[1])>>15);
       ch[1] = (int16_t)(((int32_t)pil[0]*rxF[1] + (int32_t)pil[1]*rxF[0])>>15);
+	  rs_estimate[0] = ch[0];
+	  rs_estimate[1] = ch[1];
 #ifdef DEBUG_CH
       printf("pilot 0 : rxF - > (%d,%d) ch -> (%d,%d), pil -> (%d,%d) \n",rxF[0],rxF[1],ch[0],ch[1],pil[0],pil[1]);
 #endif
@@ -217,12 +224,16 @@ int lte_dl_channel_estimation(PHY_VARS_UE *ue,
                                          ch,
                                          dl_ch,
                                          24);
-      pil+=2;    // Re Im
+      //printf("pilot 0 : rxF - > (%d,%d) ch -> (%d,%d), pil -> (%d,%d) dl_ch-> (%d %d) \n",rxF[0],rxF[1],ch[0],ch[1],pil[0],pil[1],dl_ch[0],dl_ch[1]);
+      rs_estimate+=2;
+	  pil+=2;    // Re Im
       rxF+=12;
       dl_ch+=8;
 
       ch[0] = (int16_t)(((int32_t)pil[0]*rxF[0] - (int32_t)pil[1]*rxF[1])>>15);
       ch[1] = (int16_t)(((int32_t)pil[0]*rxF[1] + (int32_t)pil[1]*rxF[0])>>15);
+	  rs_estimate[0] = ch[0];
+	  rs_estimate[1] = ch[1];
 #ifdef DEBUG_CH
       printf("pilot 1 : rxF - > (%d,%d) ch -> (%d,%d), pil -> (%d,%d) \n",rxF[0],rxF[1],ch[0],ch[1],pil[0],pil[1]);
 #endif
@@ -230,6 +241,7 @@ int lte_dl_channel_estimation(PHY_VARS_UE *ue,
                                          ch,
                                          dl_ch,
                                          24);
+      rs_estimate+=2;
       pil+=2;
       rxF+=12;
       dl_ch+=16;
@@ -240,6 +252,8 @@ int lte_dl_channel_estimation(PHY_VARS_UE *ue,
 
         ch[0] = (int16_t)(((int32_t)pil[0]*rxF[0] - (int32_t)pil[1]*rxF[1])>>15); //Re
         ch[1] = (int16_t)(((int32_t)pil[0]*rxF[1] + (int32_t)pil[1]*rxF[0])>>15); //Im
+        rs_estimate[0] = ch[0];
+	    rs_estimate[1] = ch[1];
 #ifdef DEBUG_CH
 	printf("pilot %d : rxF - > (%d,%d) ch -> (%d,%d), pil -> (%d,%d) \n",pilot_cnt,rxF[0],rxF[1],ch[0],ch[1],pil[0],pil[1]);
 #endif
@@ -248,13 +262,15 @@ int lte_dl_channel_estimation(PHY_VARS_UE *ue,
                                            dl_ch,
                                            24);
 
-
+        rs_estimate+=2;
         pil+=2;    // Re Im
         rxF+=12;
         dl_ch+=8;
 
         ch[0] = (int16_t)(((int32_t)pil[0]*rxF[0] - (int32_t)pil[1]*rxF[1])>>15);
         ch[1] = (int16_t)(((int32_t)pil[0]*rxF[1] + (int32_t)pil[1]*rxF[0])>>15);
+		rs_estimate[0] = ch[0];
+	    rs_estimate[1] = ch[1];
 #ifdef DEBUG_CH
 	printf("pilot %d : rxF - > (%d,%d) ch -> (%d,%d), pil -> (%d,%d) \n",pilot_cnt+1,rxF[0],rxF[1],ch[0],ch[1],pil[0],pil[1]);
 #endif
@@ -262,6 +278,7 @@ int lte_dl_channel_estimation(PHY_VARS_UE *ue,
                                            ch,
                                            dl_ch,
                                            24);
+        rs_estimate+=2;
         pil+=2;
         rxF+=12;
         dl_ch+=16;
@@ -286,6 +303,8 @@ int lte_dl_channel_estimation(PHY_VARS_UE *ue,
 
         ch[0] = (int16_t)(((int32_t)pil[0]*rxF[0] - (int32_t)pil[1]*rxF[1])>>15);
         ch[1] = (int16_t)(((int32_t)pil[0]*rxF[1] + (int32_t)pil[1]*rxF[0])>>15);
+	    rs_estimate[0] = ch[0];
+	    rs_estimate[1] = ch[1];
 #ifdef DEBUG_CH
 	printf("pilot %d : rxF - > (%d,%d) ch -> (%d,%d), pil -> (%d,%d) \n",pilot_cnt,rxF[0],rxF[1],ch[0],ch[1],pil[0],pil[1]);
 #endif
@@ -293,12 +312,15 @@ int lte_dl_channel_estimation(PHY_VARS_UE *ue,
                                            ch,
                                            dl_ch,
                                            24);
+        rs_estimate +=2;
         pil+=2;
         rxF+=12;
         dl_ch+=8;
 
         ch[0] = (int16_t)(((int32_t)pil[0]*rxF[0] - (int32_t)pil[1]*rxF[1])>>15);
         ch[1] = (int16_t)(((int32_t)pil[0]*rxF[1] + (int32_t)pil[1]*rxF[0])>>15);
+		rs_estimate[0] = ch[0];
+	    rs_estimate[1] = ch[1];
 #ifdef DEBUG_CH
 	printf("pilot %d : rxF - > (%d,%d) ch -> (%d,%d), pil -> (%d,%d) \n",pilot_cnt+1,rxF[0],rxF[1],ch[0],ch[1],pil[0],pil[1]);
 #endif
@@ -306,6 +328,7 @@ int lte_dl_channel_estimation(PHY_VARS_UE *ue,
                                            ch,
                                            dl_ch,
                                            24);
+        rs_estimate+=2;
         pil+=2;
         rxF+=12;
         dl_ch+=16;
@@ -314,6 +337,8 @@ int lte_dl_channel_estimation(PHY_VARS_UE *ue,
 
       ch[0] = (int16_t)(((int32_t)pil[0]*rxF[0] - (int32_t)pil[1]*rxF[1])>>15);
       ch[1] = (int16_t)(((int32_t)pil[0]*rxF[1] + (int32_t)pil[1]*rxF[0])>>15);
+	  rs_estimate[0] = ch[0];
+	  rs_estimate[1] = ch[1];
 #ifdef DEBUG_CH
       printf("pilot %d: rxF -> (%d,%d) ch -> (%d,%d), pil -> (%d,%d) \n",pilot_cnt,rxF[0],rxF[1],ch[0],ch[1],pil[0],pil[1]);
 #endif
@@ -321,12 +346,15 @@ int lte_dl_channel_estimation(PHY_VARS_UE *ue,
                                          ch,
                                          dl_ch,
                                          24);
+      rs_estimate+=2;
       pil+=2;    // Re Im
       rxF+=12;
       dl_ch+=8;
 
       ch[0] = (int16_t)(((int32_t)pil[0]*rxF[0] - (int32_t)pil[1]*rxF[1])>>15);
       ch[1] = (int16_t)(((int32_t)pil[0]*rxF[1] + (int32_t)pil[1]*rxF[0])>>15);
+	  rs_estimate[0] = ch[0];
+	  rs_estimate[1] = ch[1];
 #ifdef DEBUG_CH
       printf("pilot %d: rxF - > (%d,%d) ch -> (%d,%d), pil -> (%d,%d) \n",pilot_cnt+1,rxF[0],rxF[1],ch[0],ch[1],pil[0],pil[1]);
 #endif
@@ -334,6 +362,24 @@ int lte_dl_channel_estimation(PHY_VARS_UE *ue,
                                          ch,
                                          dl_ch,
                                          24);
+     amp_phase ap1;
+     ap1 = abs_with_angle(((short *)dl_ch1)[0], ((short *)dl_ch1)[1]);
+	 if((ue->is_synchronized==1)&&(l==0)&&((Ns%5)==0)&&(csi_collect_flag==1)&&(p==0))
+	 {
+		if(count_estimation_f<NUMBER_OF_ESTIMATION_F){
+			 
+			 write_output1("","",rs_estimate1,50,1,1,1);
+			 //write_output1("","train ",(rs_estimate1+(ue->frame_parms.N_RB_DL/2-3)*4),12,1,1,1);
+			 count_estimation_f++;
+		 }
+		else if((count_estimation_f<(NUMBER_OF_ESTIMATION_F+NUMBER_OF_ESTIMATION_F/10))&&(NUMBER_OF_ESTIMATION_F>10000)){
+			    write_output1("","test1 ",rs_estimate1,50,1,1,1);
+			    //write_output1("","test ",(rs_estimate1+(ue->frame_parms.N_RB_DL/2-3)*4),50,1,1,1);
+			    count_estimation_f++;
+			 }
+	
+			 
+	 }
 
 
     }
@@ -369,11 +415,19 @@ int lte_dl_channel_estimation(PHY_VARS_UE *ue,
       //      ch[0] = 1024;
       //      ch[1] = -128;
 #endif
-
       multadd_real_vector_complex_scalar(f2l2,
                                          ch,
                                          dl_ch,
                                          24);
+      /*if(ue->is_synchronized == 1)
+      {
+          printf("k = %d ch[0]= %d ch[1]=%d\n",k,ch[0],ch[1]);
+		  for(he=0;he<24;he++)
+		  {
+		  	printf("f2l2 = %d ",f2l2[he]);
+		  	printf("RE[%d] = %d IM[%d] = %d",dl_ch[2*he],dl_ch[2*he+1]);
+		  }
+      }*/
       pil+=2;
       rxF+=12;
       dl_ch+=16;
@@ -534,8 +588,29 @@ int lte_dl_channel_estimation(PHY_VARS_UE *ue,
                                          ch,
                                          dl_ch,
                                          24);
+    /*struct timeval tv;
+	gettimeofday(&tv,NULL); */
+	/*amp_phase ap1;
+    ap1 = abs_with_angle(((short *)dl_ch1)[0], ((short *)dl_ch1)[1]);
+	if((ue->is_synchronized==1)&&((Ns%2)==0)&&(ap1.amp!=0))
+	{
+		if(count_estimation_f<NUMBER_OF_ESTIMATION_F){
+			write_output1("amp_and_pha_","train ",dl_ch1,1200,6,1,1);
+	        count_estimation_f++;
+			}
+		else if(count_estimation_f<(NUMBER_OF_ESTIMATION_F+NUMBER_OF_ESTIMATION_F/10)){
+			write_output1("amp_and_pha_","test ",dl_ch1,1200,6,1,1);
+	        count_estimation_f++;
+			}
+			else 
+				exit(0);
+	}*/
+  
+    
+    }
+	
 
-    } else if (ue->frame_parms.N_RB_DL==15) {
+     else if (ue->frame_parms.N_RB_DL==15) {
 
       //printf("First Half\n");
       for (rb=0; rb<28; rb+=4) {
@@ -627,7 +702,7 @@ int lte_dl_channel_estimation(PHY_VARS_UE *ue,
     } else {
       msg("channel estimation not implemented for ue->frame_parms.N_RB_DL = %d\n",ue->frame_parms.N_RB_DL);
     }
-
+    //write_output1("estimate","H \n",(dl_ch-ue->frame_parms.N_RB_DL*24),ue->frame_parms.N_RB_DL*24*2,1,1);
 
     if (ue->perfect_ce == 0) {
       // Temporal Interpolation
@@ -816,7 +891,7 @@ int lte_dl_channel_estimation(PHY_VARS_UE *ue,
           T_INT(ue->proc.proc_rxtx[ue->current_thread_id[Ns>>1]].frame_rx%1024), T_INT(ue->proc.proc_rxtx[ue->current_thread_id[Ns>>1]].subframe_rx),
           T_INT(0), T_BUFFER(&ue->common_vars.common_vars_rx_data_per_thread[ue->current_thread_id[Ns>>1]].dl_ch_estimates_time[eNB_offset][0][0], 512  * 4));
 #endif
-
+  free(rs_estimate1);
   return(0);
 }
 

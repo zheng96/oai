@@ -60,6 +60,10 @@ typedef struct {
     FL_OBJECT * pdsch_llr1;
     FL_OBJECT * pdsch_tput;
     FL_OBJECT * button_0;
+	FL_OBJECT * csi;
+	FL_OBJECT * button_1;  // this controls the start or stop of csi collecting
+	FL_OBJECT * coor_csi;
+	FL_OBJECT * number_of_csi;
 
 } FD_lte_phy_scope_ue;
 

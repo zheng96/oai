@@ -799,7 +799,7 @@ typedef struct {
 	  /// \brief Hold the channel estimates in frequency domain.
 	  /// - first index: eNB id [0..6] (hard coded)
 	  /// - second index: ? [0..7] (hard coded) FIXME! accessed via \c nb_antennas_rx
-	  /// - third index: samples? [0..symbols_per_tti*(ofdm_symbol_size+LTE_CE_FILTER_LENGTH)[
+	  /// - third index: samples? [0..symbols_per_tti*(ofdm_symbol_size+/)[
 	  int32_t **dl_ch_estimates[7];
 
 	  /// \brief Hold the channel estimates in time domain (used for tracking).

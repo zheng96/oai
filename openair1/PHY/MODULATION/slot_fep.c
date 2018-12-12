@@ -24,6 +24,9 @@
 //#define DEBUG_FEP
 
 #define SOFFSET 0
+#define LENGTH_OF_OUTPUT 50
+extern uint16_t NUMBER_OF_ESTIMATION_F;
+
 
 
 int slot_fep(PHY_VARS_UE *ue,
@@ -38,7 +41,7 @@ int slot_fep(PHY_VARS_UE *ue,
   LTE_UE_COMMON *common_vars   = &ue->common_vars;
   uint8_t eNB_id = 0;//ue_common_vars->eNb_id;
   unsigned char aa;
-  unsigned char symbol = l+((7-frame_parms->Ncp)*(Ns&1)); ///symbol within sub-frame
+  unsigned char symbol = l+((7-frame_parms->Ncp)*(Ns&1)); ///symbol within frame
   unsigned int nb_prefix_samples = (no_prefix ? 0 : frame_parms->nb_prefix_samples);
   unsigned int nb_prefix_samples0 = (no_prefix ? 0 : frame_parms->nb_prefix_samples0);
   unsigned int subframe_offset;//,subframe_offset_F;
@@ -107,7 +110,7 @@ int slot_fep(PHY_VARS_UE *ue,
   }
 
 
-
+  
   for (aa=0; aa<frame_parms->nb_antennas_rx; aa++) {
     memset(&common_vars->common_vars_rx_data_per_thread[ue->current_thread_id[Ns>>1]].rxdataF[aa][frame_parms->ofdm_symbol_size*symbol],0,frame_parms->ofdm_symbol_size*sizeof(int));
 
@@ -209,6 +212,29 @@ int slot_fep(PHY_VARS_UE *ue,
                                     symbol);
         }
       }
+	  /*if(frame_parms->nb_antenna_ports_eNB==2){
+			
+		int *dl_ch_port1 = (int*)&ue->common_vars.common_vars_rx_data_per_thread[ue->current_thread_id[Ns>>1]]\
+				.dl_ch_estimates[0][0][ue->frame_parms.ofdm_symbol_size*symbol];
+		int *dl_ch_port2 = (int*)&ue->common_vars.common_vars_rx_data_per_thread[ue->current_thread_id[Ns>>1]]\
+				.dl_ch_estimates[0][1][ue->frame_parms.ofdm_symbol_size*symbol];
+		amp_phase ap1;
+        ap1 = abs_with_angle(((short *)dl_ch_port1)[0], ((short *)dl_ch_port1)[1]);
+		if((ue->is_synchronized==1)&&((Ns%2)==0)&&(ap1.amp!=0))
+	     {
+		  if(count_estimation_f<NUMBER_OF_ESTIMATION_F){
+			 write_output2("amp_and_pha_","train ",dl_ch_port1,dl_ch_port2,300,6,1,1);
+			 count_estimation_f++;
+		   }
+		  else if(count_estimation_f<(NUMBER_OF_ESTIMATION_F+NUMBER_OF_ESTIMATION_F/10)){
+			    write_output2("amp_and_pha_","test ",dl_ch_port1,dl_ch_port2,300,6,1,1);
+			    count_estimation_f++;
+		   }
+			 //else 
+				//exit(0);
+	   }
+
+	  	}*/
 
 
       // do frequency offset estimation here!
@@ -426,7 +452,9 @@ int front_end_chanEst(PHY_VARS_UE *ue,
                                   l,
                                   symbol);
         stop_meas(&ue->dlsch_channel_estimation_stats);
-
+		
+        if(ue->measurements.n_adj_cells)
+			printf("n_adj_cells = %d hengzhang",ue->measurements.n_adj_cells);
         for (i=0; i<ue->measurements.n_adj_cells; i++) {
           lte_dl_channel_estimation(ue,eNB_id,i+1,
                                     Ns,

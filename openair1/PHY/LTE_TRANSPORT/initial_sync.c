@@ -327,7 +327,8 @@ int initial_sync(PHY_VARS_UE *ue, runmode_t mode)
     lte_gold(frame_parms,ue->lte_gold_table[0],frame_parms->Nid_cell);
     ret = pbch_detection(ue,mode);
     //   write_output("rxdata2.m","rxd2",ue->common_vars.rxdata[0],10*frame_parms->samples_per_tti,1,1);
-
+    LOG_I(PHY,"FDD Normal prefix: CellId %d metric %d, phase %d, flip %d, pbch %d by zhangheng\n",
+          frame_parms->Nid_cell,metric_fdd_ncp,phase_fdd_ncp,flip_fdd_ncp,ret);
 #ifdef DEBUG_INITIAL_SYNCH
     LOG_I(PHY,"FDD Normal prefix: CellId %d metric %d, phase %d, flip %d, pbch %d\n",
           frame_parms->Nid_cell,metric_fdd_ncp,phase_fdd_ncp,flip_fdd_ncp,ret);
@@ -373,6 +374,8 @@ int initial_sync(PHY_VARS_UE *ue, runmode_t mode)
       init_frame_parms(&ue->frame_parms,1);
       lte_gold(frame_parms,ue->lte_gold_table[0],frame_parms->Nid_cell);
       ret = pbch_detection(ue,mode);
+	  LOG_I(PHY,"FDD Extended prefix: CellId %d metric %d, phase %d, flip %d, pbch %d by zhangheng\n",
+            frame_parms->Nid_cell,metric_fdd_ecp,phase_fdd_ecp,flip_fdd_ecp,ret);
       //     write_output("rxdata3.m","rxd3",ue->common_vars.rxdata[0],10*frame_parms->samples_per_tti,1,1);
 #ifdef DEBUG_INITIAL_SYNCH
       LOG_I(PHY,"FDD Extended prefix: CellId %d metric %d, phase %d, flip %d, pbch %d\n",
@@ -417,7 +420,8 @@ int initial_sync(PHY_VARS_UE *ue, runmode_t mode)
       lte_gold(frame_parms,ue->lte_gold_table[0],frame_parms->Nid_cell);
       ret = pbch_detection(ue,mode);
       //      write_output("rxdata4.m","rxd4",ue->common_vars.rxdata[0],10*frame_parms->samples_per_tti,1,1);
-
+      LOG_I(PHY,"TDD Normal prefix: CellId %d metric %d, phase %d, flip %d, pbch %d by zhangheng\n",
+            frame_parms->Nid_cell,metric_tdd_ncp,phase_tdd_ncp,flip_tdd_ncp,ret);
 #ifdef DEBUG_INITIAL_SYNCH
       LOG_I(PHY,"TDD Normal prefix: CellId %d metric %d, phase %d, flip %d, pbch %d\n",
             frame_parms->Nid_cell,metric_tdd_ncp,phase_tdd_ncp,flip_tdd_ncp,ret);
@@ -452,6 +456,8 @@ int initial_sync(PHY_VARS_UE *ue, runmode_t mode)
         init_frame_parms(&ue->frame_parms,1);
         lte_gold(frame_parms,ue->lte_gold_table[0],frame_parms->Nid_cell);
         ret = pbch_detection(ue,mode);
+		LOG_I(PHY,"TDD Extended prefix: CellId %d metric %d, phase %d, flip %d, pbch %d by zhangheng\n",
+					  frame_parms->Nid_cell,metric_tdd_ecp,phase_tdd_ecp,flip_tdd_ecp,ret);
 
 	//	write_output("rxdata5.m","rxd5",ue->common_vars.rxdata[0],10*frame_parms->samples_per_tti,1,1);
 #ifdef DEBUG_INITIAL_SYNCH
@@ -463,7 +469,7 @@ int initial_sync(PHY_VARS_UE *ue, runmode_t mode)
   }
 
   /* Consider this is a false detection if the offset is > 1000 Hz */
-  if( (abs(ue->common_vars.freq_offset) > 150) && (ret == 0) )
+  if( (abs(ue->common_vars.freq_offset) > 1500) && (ret == 0) )
   {
 	  ret=-1;
 #if DISABLE_LOG_X

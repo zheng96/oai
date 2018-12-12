@@ -110,6 +110,8 @@
 #include "types.h"
 
 
+//#define NUMBER_OF_ESTIMATION_F 1000
+
 
 /** @addtogroup _PHY_STRUCTURES_
  * @{

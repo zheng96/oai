@@ -23,6 +23,41 @@
 #define __LTE_ESTIMATION_DEFS__H__
 
 #include "PHY/defs.h"
+
+//-----------------------------------------------------------------------------
+//this is modified by zhangheng
+#ifdef count_estimation_f_GLOBAL
+#define count_estimation_f_EXT
+#else
+#define count_estimation_f_EXT extern
+#endif
+count_estimation_f_EXT uint16_t count_estimation_f;
+
+#ifdef count_estimation_f_GLOBAL
+#define count_estimation_f_EXT
+#else
+#define count_estimation_f_EXT extern
+#endif
+count_estimation_f_EXT uint16_t NUMBER_OF_ESTIMATION_F;
+
+#ifdef count_estimation_f_GLOBAL
+#define count_estimation_f_EXT
+#else
+#define count_estimation_f_EXT extern
+#endif
+count_estimation_f_EXT uint8_t csi_collect_flag;
+
+
+
+
+
+//------------------------------------------------------------------------------
+
+
+
+
+
+
 /*
 #ifdef EMOS
 #include "SCHED/phy_procedures_emos.h"

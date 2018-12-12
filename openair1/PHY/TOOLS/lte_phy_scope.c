@@ -23,7 +23,10 @@
 
 #include <stdlib.h>
 #include "lte_phy_scope.h"
-
+extern uint16_t count_estimation_f;
+extern uint8_t csi_collect_flag;
+extern char path_of_output[128];
+extern uint16_t NUMBER_OF_ESTIMATION_F;
 #define TPUT_WINDOW_LENGTH 100
 int otg_enabled;
 
@@ -47,6 +50,39 @@ static void ia_receiver_on_off( FL_OBJECT *button, long arg)
     //    PHY_vars_UE_g[0][0]->use_ia_receiver = 0;
     fl_set_object_color(button, FL_RED, FL_RED);
   }
+}
+
+ void csi_on_off( FL_OBJECT *button, long arg)
+{
+
+  if (fl_get_button(button)) {
+  	
+    fl_set_object_label(button, "CSI Collecting ON");
+    //    PHY_vars_UE_g[0][0]->use_ia_receiver = 1;
+    fl_set_object_color(button, FL_GREEN, FL_GREEN);
+    count_estimation_f = 0;
+    csi_collect_flag = 1;
+  } else {
+    fl_set_object_label(button, "CSI Collecting OFF");
+    //    PHY_vars_UE_g[0][0]->use_ia_receiver = 0;
+    fl_set_object_color(button, FL_RED, FL_RED);
+	csi_collect_flag = 0;
+  }
+}
+
+static void coor_callback(FL_OBJECT *input, long arg)
+{
+  strcpy(path_of_output,fl_get_input(input));
+  printf("%s testinput",path_of_output);
+
+}
+
+static void number_of_csi_callback(FL_OBJECT *number_of_csi, long arg)
+{
+  char input[8];
+  strcpy(input, fl_get_input(number_of_csi));
+  NUMBER_OF_ESTIMATION_F = (uint16_t)atol(input);
+  printf(" number of csi: %d",NUMBER_OF_ESTIMATION_F);
 }
 
 static void dl_traffic_on_off( FL_OBJECT *button, long arg)
@@ -152,6 +188,7 @@ void phy_scope_eNB(FD_lte_phy_scope_enb *form,
                    PHY_VARS_eNB *phy_vars_enb,
                    int UE_id)
 {
+  
   int eNB_id = 0;
   int i,i2,arx,atx,ind,k;
   LTE_DL_FRAME_PARMS *frame_parms = &phy_vars_enb->frame_parms;
@@ -381,10 +418,10 @@ FD_lte_phy_scope_ue *create_lte_phy_scope_ue( void )
   FD_lte_phy_scope_ue *fdui = fl_malloc( sizeof *fdui );
 
   // Define form
-  fdui->lte_phy_scope_ue = fl_bgn_form( FL_NO_BOX, 800, 900 );
+  fdui->lte_phy_scope_ue = fl_bgn_form( FL_NO_BOX, 800, 1050 );
 
   // This the whole UI box
-  obj = fl_add_box( FL_BORDER_BOX, 0, 0, 800, 900, "" );
+  obj = fl_add_box( FL_BORDER_BOX, 0, 0, 800, 1050, "" );
   fl_set_object_color( obj, FL_BLACK, FL_BLACK );
 
   // Received signal
@@ -441,7 +478,7 @@ FD_lte_phy_scope_ue *create_lte_phy_scope_ue( void )
   fl_set_xyplot_xgrid( fdui->pdcch_llr,FL_GRID_MAJOR);
 
   // LLR of PDSCH
-  fdui->pdsch_llr = fl_add_xyplot( FL_POINTS_XYPLOT, 20, 500, 500, 200, "PDSCH Log-Likelihood Ratios (LLR, mag)" );
+  fdui->pdsch_llr = fl_add_xyplot( FL_POINTS_XYPLOT, 20, 800, 500, 200, "PDSCH Log-Likelihood Ratios (LLR, mag)" );
   fl_set_object_boxtype( fdui->pdsch_llr, FL_EMBOSSED_BOX );
   fl_set_object_color( fdui->pdsch_llr, FL_BLACK, FL_YELLOW );
   fl_set_object_lcolor( fdui->pdsch_llr, FL_WHITE ); // Label color
@@ -449,30 +486,62 @@ FD_lte_phy_scope_ue *create_lte_phy_scope_ue( void )
   fl_set_xyplot_xgrid( fdui->pdsch_llr,FL_GRID_MAJOR);
 
   // I/Q PDSCH comp
-  fdui->pdsch_comp = fl_add_xyplot( FL_POINTS_XYPLOT, 540, 500, 240, 200, "PDSCH I/Q of MF Output" );
+  fdui->pdsch_comp = fl_add_xyplot( FL_POINTS_XYPLOT, 540, 800, 240, 200, "PDSCH I/Q of MF Output" );
   fl_set_object_boxtype( fdui->pdsch_comp, FL_EMBOSSED_BOX );
   fl_set_object_color( fdui->pdsch_comp, FL_BLACK, FL_YELLOW );
   fl_set_object_lcolor( fdui->pdsch_comp, FL_WHITE ); // Label color
   fl_set_xyplot_symbolsize( fdui->pdsch_comp,2);
-
+  
   // Throughput on PDSCH
-  fdui->pdsch_tput = fl_add_xyplot( FL_NORMAL_XYPLOT, 20, 720, 500, 100, "PDSCH Throughput [frame]/[kbit/s]" );
+  fdui->pdsch_tput = fl_add_xyplot( FL_NORMAL_XYPLOT, 20, 670, 500, 100, "PDSCH Throughput [frame]/[kbit/s]" );
   fl_set_object_boxtype( fdui->pdsch_tput, FL_EMBOSSED_BOX );
   fl_set_object_color( fdui->pdsch_tput, FL_BLACK, FL_WHITE );
   fl_set_object_lcolor( fdui->pdsch_tput, FL_WHITE ); // Label color
 
+  
+  //csi
+	
+	fdui->csi = fl_add_xyplot( FL_NORMAL_XYPLOT, 20, 500, 500, 150, "Channel State Information (RE, dB)" );
+	fl_set_object_boxtype( fdui->csi, FL_EMBOSSED_BOX );
+	fl_set_object_color( fdui->csi, FL_BLACK, FL_RED );
+	fl_set_object_lcolor( fdui->csi, FL_WHITE ); // Label color
+	fl_set_xyplot_symbolsize( fdui->csi,2);
+	fl_set_xyplot_xgrid( fdui->csi,FL_GRID_MAJOR);
+  
+
   // Generic UE Button
-  fdui->button_0 = fl_add_button( FL_PUSH_BUTTON, 540, 720, 240, 40, "" );
+  fdui->button_0 = fl_add_button( FL_PUSH_BUTTON, 540, 500, 240, 40, "" );
   fl_set_object_lalign(fdui->button_0, FL_ALIGN_CENTER );
   //openair_daq_vars.use_ia_receiver = 0;
   fl_set_button(fdui->button_0,0);
   fl_set_object_label(fdui->button_0, "IA Receiver OFF");
   fl_set_object_color(fdui->button_0, FL_RED, FL_RED);
   fl_set_object_callback(fdui->button_0, ia_receiver_on_off, 0 );
-  fl_hide_object(fdui->button_0);
+  fl_show_object(fdui->button_0);
 
-  fl_end_form( );
-  fdui->lte_phy_scope_ue->fdui = fdui;
+  //CSI collect on or off
+  fdui->button_1 = fl_add_button( FL_PUSH_BUTTON, 540, 550, 240, 40, "" );
+  fl_set_object_lalign(fdui->button_1, FL_ALIGN_CENTER );
+  //openair_daq_vars.use_ia_receiver = 0;
+  fl_set_button(fdui->button_1,0);
+  fl_set_object_label(fdui->button_1, "CSI Collecting OFF");
+  fl_set_object_color(fdui->button_1, FL_RED, FL_RED);
+  fl_set_object_callback(fdui->button_1, csi_on_off, 0 );
+  fl_show_object(fdui->button_1);
+
+  //coordinate 
+  fdui->coor_csi = fl_add_input(FL_NORMAL_INPUT, 540,600,110,40,"");
+  fl_set_object_callback( fdui->coor_csi, coor_callback, 0 );
+  //fl_set_input_color(fdui->coor_csi,FL_WHITE,FL_BLUE);
+  
+  //number of csi 
+  
+   fdui->number_of_csi = fl_add_input(FL_NORMAL_INPUT, 660,600,110,40,"");
+   fl_set_object_callback( fdui->number_of_csi, number_of_csi_callback, 0 );
+   //fl_set_input_color(fdui->coor_csi,FL_WHITE,FL_BLUE);
+   
+    fl_end_form( );
+	fdui->lte_phy_scope_ue->fdui = fdui;
 
   return fdui;
 }
@@ -483,11 +552,15 @@ void phy_scope_UE(FD_lte_phy_scope_ue *form,
                   int UE_id,
                   uint8_t subframe)
 {
+  int N_RE_DL = phy_vars_ue->frame_parms.N_RB_DL*12;
   int i,arx,atx,ind,k;
   LTE_DL_FRAME_PARMS *frame_parms = &phy_vars_ue->frame_parms;
   int nsymb_ce = frame_parms->ofdm_symbol_size;//*frame_parms->symbols_per_tti;
   uint8_t nb_antennas_rx = frame_parms->nb_antennas_rx;
   uint8_t nb_antennas_tx = frame_parms->nb_antenna_ports_eNB;
+
+  int **dl_ch_estimates ;
+  int16_t dl_ch_re,dl_ch_im;
   int16_t **rxsig_t;
   int16_t **chest_t;
   int16_t **chest_f;
@@ -503,6 +576,8 @@ void phy_scope_UE(FD_lte_phy_scope_ue *form,
   float *llr, *bit, *chest_f_abs, llr_pbch[1920], bit_pbch[1920], *llr_pdcch, *bit_pdcch;
   float *I, *Q;
   float rxsig_t_dB[nb_antennas_rx][FRAME_LENGTH_COMPLEX_SAMPLES];
+  float csi_f_db[N_RE_DL];
+  float re_rs[N_RE_DL];
   float **chest_t_abs;
   float time[FRAME_LENGTH_COMPLEX_SAMPLES];
   float freq[nsymb_ce*nb_antennas_rx*nb_antennas_tx];
@@ -573,7 +648,8 @@ void phy_scope_UE(FD_lte_phy_scope_ue *form,
   //    pdsch_llr = (int16_t*) phy_vars_ue->lte_ue_pdsch_vars_SI[eNB_id]->llr[0]; // stream 0
   pdsch_comp = (int16_t*) phy_vars_ue->pdsch_vars[phy_vars_ue->current_thread_id[subframe]][eNB_id]->rxdataF_comp0[0];
   pdsch_mag = (int16_t*) phy_vars_ue->pdsch_vars[phy_vars_ue->current_thread_id[subframe]][eNB_id]->dl_ch_mag0[0];
-
+  dl_ch_estimates = phy_vars_ue->common_vars.common_vars_rx_data_per_thread[phy_vars_ue->current_thread_id[subframe]].dl_ch_estimates[0];
+  int16_t *dl_ch  = (int16_t *)&dl_ch_estimates[0][0];
   // Received signal in time domain of receive antenna 0
   if (rxsig_t != NULL) {
     if (rxsig_t[0] != NULL) {
@@ -595,6 +671,7 @@ void phy_scope_UE(FD_lte_phy_scope_ue *form,
       }
     }
   }
+
 
   // Channel Impulse Response (still repeated format)
   if (chest_t != NULL) {
@@ -629,6 +706,18 @@ void phy_scope_UE(FD_lte_phy_scope_ue *form,
     //        fl_get_xyplot_ybounds(form->chest_t,&ymin,&ymax); // Does not always work...
     fl_set_xyplot_ybounds(form->chest_t,0,(double) ymax);
   }
+
+  //csi
+  if(dl_ch!=NULL){
+  	for(i=0;i<N_RE_DL;i++){
+		re_rs[i] = (float)i;
+		dl_ch_re = dl_ch[i*2];
+	    dl_ch_im = dl_ch[i*2+1];
+        csi_f_db[i] = 10*log10(1.0+((double)dl_ch_re*dl_ch_re + (double)dl_ch_im*dl_ch_im));
+  		}
+    }
+  fl_set_xyplot_data(form->csi,re_rs,csi_f_db,N_RE_DL,"","","");
+  fl_set_xyplot_ybounds(form->csi,0,70);
 
   // Channel Frequency Response (includes 5 complex sample for filter)
   if (chest_f != NULL) {

@@ -42,6 +42,13 @@ struct complex {
 };
 #endif
 
+typedef struct amp_phase_double
+{
+	double amp;
+	double phase;
+}amp_phase;
+
+
 struct complexf {
   float r;
   float i;
@@ -296,8 +303,19 @@ void bit8_rxdemux(int32_t length,int32_t offset);
 @param dec    decimation level
 @param format data format (0 = real 16-bit, 1 = complex 16-bit,2 real 32-bit, 3 complex 32-bit,4 = real 8-bit, 5 = complex 8-bit)
 */
-int32_t write_output(const char *fname, const char *vname, void *data, int length, int dec, char format);
+int32_t write_output(char *fname, const char *vname, void *data, int length, int dec, char format);
+int32_t write_output1(char *fname, const char *vname, void *data, int length, int dec, char format,char abs_angle);
+int32_t write_output2(char *fname, const char *vname, void *data,void *data2, int length, int dec, char format,char abs_angle);
+
+/* compute amp and phase of vector
+@param format data(0=8-bit 1=16 bit, 2=32-bit)
+*/
+amp_phase abs_with_angle(short real16, short im16);
+
+
 #endif
+
+
 
 void Zero_Buffer(void *,uint32_t);
 void Zero_Buffer_nommx(void *buf,uint32_t length);

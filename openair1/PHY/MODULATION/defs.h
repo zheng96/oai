@@ -22,6 +22,7 @@
 #ifndef __MODULATION_DEFS__H__
 #define __MODULATION_DEFS__H__
 #include "PHY/defs.h"
+
 /** @addtogroup _PHY_MODULATION_
  * @{
 */
